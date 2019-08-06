@@ -78,13 +78,13 @@ class RESTModel extends CI_Model {
     $this->db->from($this->users_table);
     $this->db->where($this->users_email_column, $username);
     if ($this->users_username_column != null) {
-      $this->db->where($this->users_username_column, $username);
+      $this->db->or_where($this->users_username_column, $username);
     }
     $query = $this->db->get();
     if ($query->num_rows() == 0) return false;
     // Authenticate.
     if (password_verify($password, $query->result()[0]->{$this->users_password_column})) {
-      if ($this->users_id_column != null) $context->user_id = $query->result()[0]->{$this->users_id_column};
+      if ($this->users_id_column != null) $context->userId = $query->result()[0]->{$this->users_id_column};
       return true;
     }
     return false;
@@ -123,7 +123,7 @@ class RESTModel extends CI_Model {
   public function getLimitData(string $client, string $group):?array {
     $sql = 'SELECT count, start, (`start` + INTERVAL (1 - TIMESTAMPDIFF(HOUR, UTC_TIMESTAMP(), NOW())) HOUR) AS reset_epoch FROM rest_api_rate_limit WHERE client = ? AND _group = ?';
     $query = $this->db->query($sql, [$client, $group]);
-    if ($query->num_rows() > 0) return $query->result_array()[0];
+    if (!is_scalar($query) && $query->num_rows() > 0) return $query->result_array()[0];
     return null;
   }
   /**
