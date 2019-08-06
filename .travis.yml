@@ -1,5 +1,7 @@
 language: php
 sudo: required
+services:
+- mysql
 php:
 - '7.3'
 - '7.2'
