@@ -5,8 +5,7 @@
 	convertWarningsToExceptions="true"
 	processIsolation="false"
 	stopOnFailure="false"
-	verbose="true"
-	testdox="true">
+	verbose="true">
 	<testsuites>
 		<testsuite name="Splint Test Suite">
 			<file>travis-splint-0.0.5/application/splints/francis94c/ci-rest/phpunit/RESTTest.php</file>
