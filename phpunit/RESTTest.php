@@ -23,7 +23,6 @@ class RESTTest extends TestCase {
    * @covers JWT::__construct
    */
   public static function setUpBeforeClass(): void {
-    echo "IN TEST";
     self::$ci =& get_instance();
     self::$ci->load->database('mysqli://root@localhost/test_db');
     self::$ci->load->helper("url");
