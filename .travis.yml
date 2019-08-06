@@ -1,0 +1,23 @@
+language: php
+sudo: required
+php:
+- '7.3'
+- '7.2'
+branches:
+  only:
+  - master
+install: "./travis.sh"
+env:
+  global:
+  - CI_ENV="testing"
+  - TRAVIS="true"
+  - TRAVIS_JOB_ID="$TRAVIS_JOB_ID"
+  - CI_BUILD_NUMBER="$TRAVIS_BUILD_NUMBER"
+  - CI_PULL_REQUEST="$TRAVIS_PULL_REQUEST"
+  - CI_BRANCH="$TRAVIS_BRANCH"
+  - secure: NR2dRCl4oZSYsJOcR24LmNSb/8s6tGq+bz8HGNWVSL158oAiZKIsi4f6I1G+dQ/Lj2Q0wNSqeOBcxrDWcUQZ4JAWFavnNL70I064dB88twZT8YYUUHhDMPMwSXjQ+oLM5gMxsgQ4zN+C3aafZrbQC8G2O20Oa+gjEo0qd8XeY95BhLRk5a9eeYCpHZkLQH39d97YXrdfW0hqX5GgyQbAwTRpiXVQk55jWg0sB1YmbwFS1trHS/XQ0cPvgi/BcBfpRpyfqzYuoGMIK33YJksTD1WLayYssv3mTQDaDHt+9aVoaKJ/TB8xMHZ86usTUu/94eWnbLzO0MA/l2AKmkn9QuPxWu0yRNM54/Jb3dZnpVwIAXOsj4c7tBQ8BrHlmlsWVQJ453kgqIpQgLNDze0IYez5pl/zBgHPVkYQ11lJFLU00Vi7IKIJTqtMtSGAPmbvZbk8+lKKJtgA/25zeG6vtU5zu/stjgRVNE7Sq1Z8nEKcm7MIhGGjN96FkI1FxS3/VKaYcbUPg1X0iv4C9+AImordaQm6lpx7IVenLPnxyO454mLMMFMg13b3s+8hjvHGROYapuTFRHxKpcmU3IjrRWVPelevnubaj50DHZjFZ0fUr++gKiTM+vWhEiGspgc1iq1V6u5F7xsti1qvEfweH9OnzOUAshxbDMYH4Ck0UGM=
+script:
+- composer require php-coveralls/php-coveralls
+- phpunit
+after_success:
+- travis_retry php vendor/bin/php-coveralls -v
