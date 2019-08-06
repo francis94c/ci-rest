@@ -1,7 +1,7 @@
 # ENV
-SPLINT_VERSION="0.0.2"
+SPLINT_VERSION="0.0.4"
 VENDOR="francis94c"
-PACKAGE="ci-jwt"
+PACKAGE="ci-rest"
 
 created=false
 
