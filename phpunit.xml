@@ -1,4 +1,4 @@
-<phpunit bootstrap="travis-splint-0.0.4/index.php"
+<phpunit bootstrap="travis-splint-0.0.5/index.php"
 	colors="true"
 	convertErrorsToExceptions="true"
 	convertNoticesToExceptions="true"
@@ -9,7 +9,7 @@
 	testdox="true">
 	<testsuites>
 		<testsuite name="Splint Test Suite">
-			<file>travis-splint-0.0.4/application/splints/francis94c/ci-rest/phpunit/RESTTest.php</file>
+			<file>travis-splint-0.0.5/application/splints/francis94c/ci-rest/phpunit/RESTTest.php</file>
 		</testsuite>
 	</testsuites>
 	<logging>
@@ -17,10 +17,10 @@
 	</logging>
 	<filter>
 		<whitelist addUncoveredFilesFromWhitelist="true">
-			<directory suffix=".php">./travis-splint-0.0.4/application/splints/francis94c/ci-rest</directory>
+			<directory suffix=".php">./travis-splint-0.0.5/application/splints/francis94c/ci-rest</directory>
 			<exclude>
-				<file>travis-splint-0.0.4/application/splints/francis94c/ci-rest/phpunit/RESTTest.php</file>
-				<file>travis-splint-0.0.4/application/splints/francis94c/ci-rest/phpunit/config/rest.php</file>
+				<file>travis-splint-0.0.5/application/splints/francis94c/ci-rest/phpunit/RESTTest.php</file>
+				<file>travis-splint-0.0.5/application/splints/francis94c/ci-rest/phpunit/config/rest.php</file>
 			</exclude>
 		</whitelist>
   </filter>
