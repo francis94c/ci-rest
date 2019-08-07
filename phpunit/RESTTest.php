@@ -33,7 +33,7 @@ class RESTTest extends TestCase {
       self::$ci->db->query($query);
     }
     // Verify that URI can be modified.
-    self::$ci->config->set_item("st_uri_string", "a/uri");
+    self::$ci->uri->set_uri_string("a/uri");
     self::assertEquals("a/uri", uri_string());
     // Everything about this library, happens in it's connstructors.
     // Some static PHPUnit assertions will take place in the rest.php file
@@ -50,7 +50,7 @@ class RESTTest extends TestCase {
    */
   public function testBasicAuth():void {
     // Simulate Request To 'basic/auth'
-    self::$ci->config->set_item("st_uri_string", "basic/auth");
+    self::$ci->config->set_uri_string("basic/auth");
     // Simulate Basic Authorization
     $_SERVER['PHP_AUTH_USER'] = "francis94c";
     $_SERVER['PHP_AUTH_PW'] = "0123456789";
