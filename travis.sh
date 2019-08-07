@@ -1,5 +1,5 @@
 # ENV
-SPLINT_VERSION="0.0.7"
+SPLINT_VERSION="0.0.8"
 VENDOR="francis94c"
 PACKAGE="ci-rest"
 

@@ -50,7 +50,7 @@ class RESTTest extends TestCase {
    */
   public function testBasicAuth():void {
     // Simulate Request To 'basic/auth'
-    self::$ci->config->set_uri_string("basic/auth");
+    self::$ci->uri->set_uri_string("basic/auth");
     // Simulate Basic Authorization
     $_SERVER['PHP_AUTH_USER'] = "francis94c";
     $_SERVER['PHP_AUTH_PW'] = "0123456789";
