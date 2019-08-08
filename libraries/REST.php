@@ -339,7 +339,8 @@ class REST {
     if (isset($this->ci->config->item('rest')['response_callbacks'][$code])) {
       $this->ci->config->item('rest')['response_callbacks'][$code]($auth);
     }
-    exit(1);
+    if (ENVIRONMENT != 'testing') exit($code);
+    throw new Exception("Error $code in $auth", $code);
   }
 }
 ?>
