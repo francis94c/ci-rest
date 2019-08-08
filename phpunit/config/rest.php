@@ -1,6 +1,8 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+use PHPUnit\Framework\Assert as Assert;
+
 $config['api_key_header'] = "X-API-KEY";
 
 $config['uri_auth'] = [
@@ -36,9 +38,8 @@ $config['response_callbacks'] = [
   },
 
   RESTResponse::UN_AUTHORIZED      => function(&$auth):void {
-    echo (json_encode([
-      'error' => 'Un-Authorized'
-    ]));
+    $ci =& get_instance();
+    Assert::assertTrue(uri_string() == $ci->config->item('expected_uri')&& $auth == $ci->config->item('expected_auth'));
   },
 
   RESTResponse::NOT_ACCEPTABLE     => function(&$auth):void {

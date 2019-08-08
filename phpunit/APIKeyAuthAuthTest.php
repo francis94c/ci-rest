@@ -4,7 +4,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 use PHPUnit\Framework\TestCase;
 
-class RESTTest extends TestCase {
+class APIKeyAuthAuthTest extends TestCase {
   /**
    * Code Igniter Instance.
    * @var object
@@ -15,7 +15,6 @@ class RESTTest extends TestCase {
    * @var string
    */
   private const PACKAGE = "francis94c/ci-rest";
-  private $obj_count = 0;
 
   /**
    * Prerquisites for the Unit Tests.
@@ -32,30 +31,13 @@ class RESTTest extends TestCase {
     foreach ($queries as $query) {
       self::$ci->db->query($query);
     }
-    // Verify that URI can be modified.
-    self::$ci->uri->set_uri_string("a/uri");
-    self::assertEquals("a/uri", uri_string());
-    // Everything about this library, happens in it's connstructors.
-    // Some static PHPUnit assertions will take place in the rest.php file
-    // traditionally provided by the user and loaded from application/config by
-    // default.
-    // However, for the purpose of this test, we are going to Hack Code CodeIgniter
-    // with a Splint Config variable to allow us load config files from where
-    // ever we want. This happens below.
-    self::$ci->load->add_package_path(APPPATH . 'splints/' . self::PACKAGE . "/phpunit/");
-    //self::$ci->config->set_item('st_config_path_prefix', '../splints/' . self::PACKAGE . "/phpunit/config/");
   }
   /**
-   * [testBasicAuthentication description]
+   * [testAPIKeyAuth description]
    */
-  public function testBasicAuth():void {
-    // Simulate Request To 'basic/auth'
-    self::$ci->uri->set_uri_string("basic/auth");
-    // Simulate Basic Authorization
-    $_SERVER['PHP_AUTH_USER'] = "francis94c";
-    $_SERVER['PHP_AUTH_PW'] = "0123456789";
-    self::$ci->load->splint(self::PACKAGE, '+REST', null, 'rest_' . $this->obj_count++);
-    $this->assertEquals(1, self::$ci->{'rest_'.($this->obj_count - 1)}->userId);
+  public function testAPIKeyAuth():void {
+    $_SERVER['HTTP_X_API_KEY'] = "ABCDE";
+    $this->assertTrue(true);
   }
   /**
    * [tearDownAfterClass description]

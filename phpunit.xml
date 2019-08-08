@@ -7,8 +7,9 @@
 	stopOnFailure="false"
 	verbose="true">
 	<testsuites>
-		<testsuite name="Splint Test Suite">
-			<file>travis-splint-0.0.8/application/splints/francis94c/ci-rest/phpunit/RESTTest.php</file>
+		<testsuite name="CI-REST Test Suite">
+			<file>travis-splint-0.0.8/application/splints/francis94c/ci-rest/phpunit/BasicAuthTest.php</file>
+			<file>travis-splint-0.0.8/application/splints/francis94c/ci-rest/phpunit/APIKeyAuthAuthTest.php</file>
 		</testsuite>
 	</testsuites>
 	<logging>
@@ -18,7 +19,8 @@
 		<whitelist addUncoveredFilesFromWhitelist="true">
 			<directory suffix=".php">./travis-splint-0.0.8/application/splints/francis94c/ci-rest</directory>
 			<exclude>
-				<file>travis-splint-0.0.8/application/splints/francis94c/ci-rest/phpunit/RESTTest.php</file>
+				<file>travis-splint-0.0.8/application/splints/francis94c/ci-rest/phpunit/BasicAuthTest.php</file>
+				<file>travis-splint-0.0.8/application/splints/francis94c/ci-rest/phpunit/APIKeyAuthAuthTest.php</file>
 				<file>travis-splint-0.0.8/application/splints/francis94c/ci-rest/phpunit/config/rest.php</file>
 			</exclude>
 		</whitelist>
