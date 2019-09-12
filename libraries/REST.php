@@ -86,8 +86,11 @@ class REST {
   const   RATE_LIMIT = "RateLimit";
 
   /**
-   * [__construct description]
-   * @param [type] $params [description]
+   * [__construct This is the part of the code that takes care of all
+   * authentiations. allowijg you to focus on build wonderfult things at REST.
+   * pun intended ;-)]
+   * @param array|null $params Initialization parameters from the Slint system.
+   *                           There's no use for this arg yet.
    */
   function __construct($params=null) {
     $this->ci =& get_instance();
