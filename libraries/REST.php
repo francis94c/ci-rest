@@ -75,6 +75,11 @@ class REST {
    */
   public  $token;
   /**
+   * [public description]
+   * @var [type]
+   */
+  public $allowedIPs;
+  /**
    * [PACKAGE description]
    * @var string
    */
@@ -113,6 +118,7 @@ class REST {
     ];
     $this->rest_model->init($config);
     // Load Variable(s) from Config.
+    $this->allowedIPs = $this->ci->config->item('rest')['allowed_ips'] ?? ['127.0.0.1', '[::1]'];
     $this->apiKeyHeader = $this->ci->config->item('rest')['api_key_header'] ?? 'X-API-KEY';
     $this->api_key_limit_column = $this->ci->config->item('rest')['api_key_auth']['api_key_limit_column'] ?? null;
     $this->api_key_column = $this->ci->config->item('rest')['api_key_auth']['api_key_column'] ?? null;
@@ -169,11 +175,20 @@ class REST {
    */
   private function process_auth(string &$auth):void {
     switch ($auth) {
+      case RESTAuth::IP: $this->ip_auth(); break;
       case RESTAuth::BASIC: $this->basic_auth(); break;
       case RESTAuth::API_KEY: $this->api_key_auth(); break;
       case RESTAuth::OAUTH2: $this->bearer_auth(RESTAuth::OAUTH2); break;
       case RESTAuth::BEARER: $this->bearer_auth(); break;
       default: $this->custom_auth($auth);
+    }
+  }
+  /**
+   * [ip_auth description]
+   */
+  private function ip_auth():void {
+    if (!in_array($this->ci->input->ip_address(), $this->allowedIPs)) {
+      $this->handle_response(RESTResponse::UN_AUTHORIZED, RESTAuth::IP); // Exits.
     }
   }
   /**

@@ -23,6 +23,11 @@ class RESTAuth {
    */
   const OAUTH2  = "OAUTH2";
   /**
+   * [IP description]
+   * @var string
+   */
+  const IP      = "IP";
+  /**
    * [CUSTOM description]
    * @param  string $header [description]
    * @return string         [description]
