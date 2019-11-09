@@ -43,10 +43,16 @@ class Response extends CI_Controller
     $this->json = $json;
     return $this;
   }
+  /**
+   * [send description]
+   * @date 2019-11-09
+   */
   public function send():void
   {
     http_response_code($this->code);
-    echo !$this->json ? $this->data : n_encode($this->data);
+
+    if ($data != null) echo !$this->json ? $this->data : json_encode($this->data);
+    
     if (get_instance()->config->item('rest')['response_exit']) {
       exit(EXIT_SUCCESS);
     }
