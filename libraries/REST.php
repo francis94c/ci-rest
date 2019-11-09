@@ -105,6 +105,8 @@ class REST {
     $this->ci->load->database();
     // load URL Helper
     $this->ci->load->helper('url');
+    // Load REST Helper.
+    $this->ci->load->helper('rest');
     // Load Model.
     $this->ci->load->splint(self::PACKAGE, '*RESTModel', 'rest_model');
     $this->rest_model =& $this->ci->rest_model;
