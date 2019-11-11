@@ -61,7 +61,7 @@ class RESTResponse extends CI_Controller
    * @date  2019-11-11
    * @param boolean    $exit [description]
    */
-  public function send(bool $exit=true):void
+  public function send(bool $exit=false):void
   {
     http_response_code($this->code ?? 200);
 
