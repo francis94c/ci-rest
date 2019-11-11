@@ -28,7 +28,7 @@ class RESTResponse extends CI_Controller
    * @var bool
    */
   protected $json;
-  function __construct($data, int $code)
+  function __construct($data=null, int $code=null)
   {
     $this->data = $data;
     $this->code = $code;
@@ -43,29 +43,32 @@ class RESTResponse extends CI_Controller
     return !$this->json ? $this->data : n_encode($this->data);
   }
   /**
-   * [setJSON description]
-   * @date   2019-11-09
-   * @param  bool       $json [description]
-   * @return RESTResponse         [description]
+   * [json description]
+   * @date   2019-11-11
+   * @param  [type]       $data [description]
+   * @param  int          $code [description]
+   * @return RESTResponse       [description]
    */
-  public function setJSON(bool $json):RESTResponse
+  public function json($data, int $code):RESTResponse
   {
-    $this->json = $json;
+    $this->json = true;
+    $this->code = $code;
+    $this->data = $data;
     return $this;
   }
   /**
    * [send description]
    * @date 2019-11-09
    */
-  public function send():void
+  public function send(bool $exit=true):void
   {
-    http_response_code($this->code);
+    http_response_code($this->code ?? 200);
+
+    if ($this->json) header('Content-Type: application/json');
 
     if ($data != null) echo !$this->json ? $this->data : json_encode($this->data);
 
-    if (get_instance()->config->item('rest')['response_exit'] ?? true) {
-      exit(EXIT_SUCCESS);
-    }
+    if ($exit) exit(EXIT_SUCCESS);
   }
 }
 ?>
