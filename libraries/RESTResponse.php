@@ -63,7 +63,7 @@ class RESTResponse extends CI_Controller
 
     if ($data != null) echo !$this->json ? $this->data : json_encode($this->data);
 
-    if (get_instance()->config->item('rest')['response_exit']) {
+    if (get_instance()->config->item('rest')['response_exit'] ?? true) {
       exit(EXIT_SUCCESS);
     }
   }
