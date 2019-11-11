@@ -58,7 +58,8 @@ class RESTResponse extends CI_Controller
   }
   /**
    * [send description]
-   * @date 2019-11-09
+   * @date  2019-11-11
+   * @param boolean    $exit [description]
    */
   public function send(bool $exit=true):void
   {
