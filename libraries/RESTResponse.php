@@ -67,7 +67,7 @@ class RESTResponse extends CI_Controller
 
     if ($this->json) header('Content-Type: application/json');
 
-    if ($this->data !== null) echo !$this->json ? $this->data : json_encode($this->data);
+    if ($this->data !== null) echo !$this->json ? $this->data : json_encode($this->data, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
 
     if ($exit) exit(EXIT_SUCCESS);
   }
