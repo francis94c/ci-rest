@@ -56,6 +56,7 @@ class RESTResponse extends CI_Controller
     $this->data = $data;
     return $this;
   }
+  
   /**
    * [send description]
    * @date  2019-11-11

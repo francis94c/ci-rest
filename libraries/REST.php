@@ -6,53 +6,62 @@ require_once('RESTAuth.php');
 require_once('RESTResponse.php');
 require_once('RESTExceptions.php');
 
-class REST {
-
+class REST
+{
   /**
    * [private description]
    * @var [type]
    */
   private $ci;
+
   /**
    * [private description]
    * @var [type]
    */
   private $api_key_limit_column;
+
   /**
    * [private description]
    * @var [type]
    */
   private $api_key_column;
+
   /**
    * [private description]
    * @var [type]
    */
   private $per_hour;
+
   /**
    * [private description]
    * @var [type]
    */
   private $ip_per_hour;
+
   /**
    * [private description]
    * @var [type]
    */
   private $show_header;
+
   /**
    * [private description]
    * @var [type]
    */
   private $whitelist;
+
   /**
    * [private description]
    * @var [type]
    */
   private $checked_rate_limit = false;
+
   /**
    * [private description]
    * @var [type]
    */
   private $header_prefix;
+
   /**
    * [private description]
    * @var [type]
@@ -64,52 +73,66 @@ class REST {
    * @var [type]
    */
   public  $userId;
+
   /**
    * [public description]
    * @var [type]
    */
   public  $apiKeyHeader;
+
   /**
    * [public description]
    * @var [type]
    */
   public  $token;
+
   /**
    * [public description]
    * @var [type]
    */
-  public $allowedIPs;
+  public $allowedIps;
+
   /**
    * [PACKAGE description]
    * @var string
    */
-  const   PACKAGE    = "francis94c/ci-rest";
+  const PACKAGE = "francis94c/ci-rest";
+
   /**
    * [RATE_LIMIT description]
    * @var string
    */
-  const   RATE_LIMIT = "RateLimit";
+  const RATE_LIMIT = "RateLimit";
 
   /**
    * [__construct This is the part of the code that takes care of all
-   * authentiations. allowijg you to focus on build wonderfult things at REST.
+   * authentiations. allowing you to focus on building wonderful things at REST.
    * pun intended ;-)]
    * @param array|null $params Initialization parameters from the Slint system.
    *                           There's no use for this arg yet.
    */
-  function __construct($params=null) {
+  function __construct(?array $params=null)
+  {
     $this->ci =& get_instance();
+
+    if ($this->ci->input->is_cli_request()) return;
+
     // Load Config If Exists.
     $this->ci->config->load('rest', true, true);
+
     // Load Database.
     $this->ci->load->database();
+
     // load URL Helper
     $this->ci->load->helper('url');
+
     // Load REST Helper.
     $this->ci->load->splint(self::PACKAGE, '%rest');
+
     // Load Model.
     $this->ci->load->splint(self::PACKAGE, '*RESTModel', 'rest_model');
     $this->rest_model =& $this->ci->rest_model;
+
     $config = [
       'users_table'           => $this->ci->config->item('rest')['basic_auth']['users_table'] ?? null,
       'users_id_column'       => $this->ci->config->item('rest')['basic_auth']['id_column'] ?? null,
@@ -120,9 +143,11 @@ class REST {
       'api_key_column'        => $this->ci->config->item('rest')['api_key_auth']['api_key_column'] ?? null,
       'api_key_limit_column'  => $this->ci->config->item('rest')['api_key_auth']['api_key_limit_column'] ?? null
     ];
+
     $this->rest_model->init($config);
+
     // Load Variable(s) from Config.
-    $this->allowedIPs = $this->ci->config->item('rest')['allowed_ips'] ?? ['127.0.0.1', '[::1]'];
+    $this->allowedIps = $this->ci->config->item('rest')['allowed_ips'] ?? ['127.0.0.1', '[::1]'];
     $this->apiKeyHeader = $this->ci->config->item('rest')['api_key_header'] ?? 'X-API-KEY';
     $this->api_key_limit_column = $this->ci->config->item('rest')['api_key_auth']['api_key_limit_column'] ?? null;
     $this->api_key_column = $this->ci->config->item('rest')['api_key_auth']['api_key_column'] ?? null;
@@ -132,6 +157,12 @@ class REST {
     $this->show_header = $this->ci->config->item('rest')['api_limiter']['show_header'] ?? null;
     $this->whitelist = $this->ci->config->item('rest')['api_limiter']['whitelist'] ?? null;
     $this->header_prefix = $this->ci->config->item('rest')['api_limiter']['header_prefix'] ?? 'X-RateLimit-';
+
+    // Limit Only?
+    //if ($this->ci->config->item('rest')['api_limiter']['api_limit_only'] ?? false) {
+      //return;
+    //}
+
     // Authenticate
     $this->authenticate();
 
@@ -143,33 +174,61 @@ class REST {
 
     log_message('debug', 'REST Request Authenticated and REST Library Initialized.');
   }
+
   /**
    * [authenticate description]
+   * @date 2020-01-30
    */
-  private function authenticate():void {
+  private function authenticate():void
+  {
+    $auths = null;
+
+    $globalAuths = $this->ci->config->item('rest')['global_auth'] ?? null;
+
+    if ($globalAuths != null) {
+      if (is_array($globalAuths)) {
+        $auths = $globalAuths;
+      } else {
+        $auths = [$globalAuths];
+      }
+    }
+
     $uri_auths = $this->ci->config->item('rest')['uri_auth'] ?? null;
+
     // Match Auth Routes.
     // The below algorithm is similar to the one Code Igniter uses in its
     // Routing Class.
-    if ($uri_auths == null || !is_array($uri_auths)) return;
-    $auths = null;
-    foreach ($uri_auths as $uri => $auth_array) {
-      // Convert wildcards to RegEx.
-			$uri = str_replace(array(':any', ':num'), array('[^/]+', '[0-9]+'), $uri);
-      if (preg_match('#^'.$uri.'$#', uri_string())) $auths = $auth_array; // Assign Authentication Steps.
-      break;
+    if ($uri_auths != null || is_array($uri_auths)) {
+      foreach ($uri_auths as $uri => $auth_array) {
+        // Convert wildcards to RegEx.
+  			$uri = str_replace(array(':any', ':num'), array('[^/]+', '[0-9]+'), $uri);
+        if (preg_match('#^'.$uri.'$#', uri_string())) {
+          // Assign Authentication Steps.
+          if (is_array($auth_array)) {
+            foreach ($auth_array as $auth) {
+              $auths[] = $auth;
+            }
+          } else {
+            $auths[] = $auth_array;
+          }
+        }
+        break;
+      }
     }
+
     //$auths = $this->ci->config->item('rest')['uri_auth'][uri_string()] ?? null;
-    if ($auths == null) return; // No authentication(s) to acrry out.
+    if ($auths == null) return; // No authentication(s) to carry out.
+
     // $this->process_auth() terminates the script if authentication fails
     // It will call the callable in the rest.php config file under
     // response_callbacks which matches the necesarry RESTResponse constant
     // before exiting. Which callable is called in any situation is documented
     // in README.md
-    if (is_scalar($auths)) {
-      $this->process_auth($auths);
-      return;
-    }
+    //if (is_scalar($auths)) {
+      //$this->process_auth($auths);
+      //return;
+    //}
+
     foreach ($auths as $auth) $this->process_auth($auth);
   }
   /**
@@ -191,7 +250,7 @@ class REST {
    * [ip_auth description]
    */
   private function ip_auth():void {
-    if (!in_array($this->ci->input->ip_address(), $this->allowedIPs)) {
+    if (!in_array($this->ci->input->ip_address(), $this->allowedIps)) {
       $this->handle_response(RESTResponse::UN_AUTHORIZED, RESTAuth::IP); // Exits.
     }
   }
@@ -230,16 +289,23 @@ class REST {
   /**
    * [api_key_auth description]
    */
-  private function api_key_auth():void {
-    if (!isset($_SERVER['HTTP_' . str_replace("-", "_", $this->apiKeyHeader)])) {
+  private function api_key_auth():void
+  {
+    if (uri_string() == '')  return;
+
+    if (!$this->ci->input->get_request_header($this->apiKeyHeader, true)) {
+    // if (!isset($_SERVER['HTTP_' . str_replace("-", "_", $this->apiKeyHeader)])) {
       $this->handle_response(RESTResponse::BAD_REQUEST, RESTAuth::API_KEY); // Exits.
     }
+
     $apiKey = $this->rest_model->getAPIKeyData(
-      $_SERVER['HTTP_' . str_replace("-", "_", $this->apiKeyHeader)]
+      $this->ci->input->get_request_header($this->apiKeyHeader, true)
     );
+
     if ($apiKey == null) {
       $this->handle_response(RESTResponse::UN_AUTHORIZED, RESTAuth::API_KEY); // Exits.
     }
+
     // API KEY Auth Passed Above.
     if ($this->limit_api && $this->api_key_limit_column != null && $apiKey[$this->api_key_limit_column] == 1) {
       // Trunctate Rate Limit Data.
@@ -316,7 +382,8 @@ class REST {
    * [custom_auth description]
    * @param string $auth [description]
    */
-  private function custom_auth(string &$auth):void {
+  private function custom_auth(string &$auth):void
+  {
     // Header Check.
     if (!isset($_SERVER[$auth])) {
       $this->handle_response(RESTResponse::BAD_REQUEST, $auth);
@@ -334,7 +401,8 @@ class REST {
    * [get_authorization_header description]
    * @return [type] [description]
    */
-  private function get_authorization_header():?string {
+  private function get_authorization_header():?string
+  {
     if (isset($_SERVER['Authorization'])) {
       return trim($_SERVER["Authorization"]);
     } else if (isset($_SERVER['HTTP_AUTHORIZATION'])) { //Nginx or fast CGI
@@ -351,11 +419,13 @@ class REST {
     }
     return null;
   }
+
   /**
    * [handle_response description]
    * @param int $code [description]
    */
-  private function handle_response(int $code, $auth=null):void {
+  private function handle_response(int $code, $auth=null):void
+  {
     http_response_code($code);
     header("Content-Type: application/json");
     if (isset($this->ci->config->item('rest')['response_callbacks'][$code])) {
