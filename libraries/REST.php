@@ -78,6 +78,12 @@ class REST
    * [public description]
    * @var [type]
    */
+  public $apiKey;
+
+  /**
+   * [public description]
+   * @var [type]
+   */
   public  $apiKeyHeader;
 
   /**
@@ -155,7 +161,7 @@ class REST
     $this->per_hour = $this->ci->config->item('rest')['api_limiter']['per_hour'] ?? 100;
     $this->ip_per_hour = $this->ci->config->item('rest')['api_limiter']['ip_per_hour'] ?? 50;
     $this->show_header = $this->ci->config->item('rest')['api_limiter']['show_header'] ?? null;
-    $this->whitelist = $this->ci->config->item('rest')['api_limiter']['whitelist'] ?? null;
+    $this->whitelist = $this->ci->config->item('rest')['api_limiter']['whitelist'] ?? [];
     $this->header_prefix = $this->ci->config->item('rest')['api_limiter']['header_prefix'] ?? 'X-RateLimit-';
 
     // Limit Only?
@@ -306,8 +312,10 @@ class REST
       $this->handle_response(RESTResponse::UN_AUTHORIZED, RESTAuth::API_KEY); // Exits.
     }
 
+    $this->apiKey = $apiKey;
+
     // API KEY Auth Passed Above.
-    if ($this->limit_api && $this->api_key_limit_column != null && $apiKey[$this->api_key_limit_column] == 1) {
+    if ($this->limit_api && $this->api_key_limit_column != null && $apiKey->{$this->api_key_limit_column} == 1) {
       // Trunctate Rate Limit Data.
       $this->rest_model->truncateRatelimitData();
       // Check Whitelist.
@@ -317,7 +325,7 @@ class REST
       }
       // Should we acyually Limit?
       if ($this->per_hour > 0) {
-        $client = hash('md5', $this->ci->input->ip_address() . "%" . $apiKey[$this->api_key_column]);
+        $client = hash('md5', $this->ci->input->ip_address() . "%" . $apiKey->{$this->api_key_column});
         $limitData = $this->rest_model->getLimitData($client, '_api_keyed_user');
         if ($limitData == null) {
           $limitData = [];

@@ -89,24 +89,23 @@ class RESTModel extends CI_Model {
     }
     return false;
   }
+
   /**
    * [getAPIKeyData description]
    * @param  string $apiKey [description]
    * @return array          [description]
    */
-  public function getAPIKeyData(string $apiKey):?array {
+  public function getAPIKeyData(string $apiKey):?object {
     // Preliminary Check.
     if ($this->api_key_table == null || $this->api_key_column == null) return null;
     // Query.
-    $this->db->select($this->api_key_column);
-    if ($this->api_key_limit_column != null) $this->db->select($this->api_key_limit_column);
     $this->db->from($this->api_key_table);
     $this->db->where($this->api_key_column, $apiKey);
     $query = $this->db->get();
     // Process Result.
-    if ($query->num_rows() > 0) return $query->result_array()[0];
-    return null;
+    return $query->num_rows() > 0 ? $query->result()[0] : null;
   }
+
   /**
    * [truncateRatelimitData description]
    * @return bool [description]
