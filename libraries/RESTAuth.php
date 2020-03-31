@@ -7,21 +7,31 @@ class RESTAuth {
    * @var string
    */
   const BASIC   = "Basic";
+
   /**
    * [API_KEY description]
    * @var string
    */
   const API_KEY = "ApiKey";
+
   /**
    * [BEARER description]
    * @var string
    */
-  const BEARER  = "Bearer";
+  const BEARER = 'Bearer';
+
+  /**
+   * [SECRET description]
+   * @var string
+   */
+  const SECRET = 'Secret';
+
   /**
    * [OAUTH2 description]
    * @var string
    */
   const OAUTH2  = "OAUTH2";
+
   /**
    * [IP description]
    * @var string

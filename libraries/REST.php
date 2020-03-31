@@ -99,6 +99,12 @@ class REST
   public $allowedIps;
 
   /**
+   * [public description]
+   * @var [type]
+   */
+  public $config;
+
+  /**
    * [PACKAGE description]
    * @var string
    */
@@ -124,7 +130,12 @@ class REST
     if ($this->ci->input->is_cli_request()) return;
 
     // Load Config If Exists.
-    $this->ci->config->load('rest', true, true);
+    //$this->ci->config->load('rest', true, true);
+    if (is_file(APPPATH . 'config/rest.php')) {
+      include APPPATH . 'config/rest.php';
+    }
+
+    $this->config = $config;
 
     // Load Database.
     $this->ci->load->database();
@@ -139,33 +150,31 @@ class REST
     $this->ci->load->splint(self::PACKAGE, '*RESTModel', 'rest_model');
     $this->rest_model =& $this->ci->rest_model;
 
-    $config = [
-      'users_table'           => $this->ci->config->item('rest')['basic_auth']['users_table'] ?? null,
-      'users_id_column'       => $this->ci->config->item('rest')['basic_auth']['id_column'] ?? null,
-      'users_username_column' => $this->ci->config->item('rest')['basic_auth']['username_column'] ?? null,
-      'users_email_column'    => $this->ci->config->item('rest')['basic_auth']['email_column'] ?? null,
-      'users_password_column' => $this->ci->config->item('rest')['basic_auth']['password_column'] ?? null,
-      'api_key_table'         => $this->ci->config->item('rest')['api_key_auth']['api_key_table'] ?? null,
-      'api_key_column'        => $this->ci->config->item('rest')['api_key_auth']['api_key_column'] ?? null,
-      'api_key_limit_column'  => $this->ci->config->item('rest')['api_key_auth']['api_key_limit_column'] ?? null
-    ];
-
-    $this->rest_model->init($config);
+    $this->rest_model->init([
+      'users_table'           => $config['basic_auth']['users_table'] ?? null,
+      'users_id_column'       => $config['basic_auth']['id_column'] ?? null,
+      'users_username_column' => $config['basic_auth']['username_column'] ?? null,
+      'users_email_column'    => $config['basic_auth']['email_column'] ?? null,
+      'users_password_column' => $config['basic_auth']['password_column'] ?? null,
+      'api_key_table'         => $config['api_key_auth']['api_key_table'] ?? null,
+      'api_key_column'        => $config['api_key_auth']['api_key_column'] ?? null,
+      'api_key_limit_column'  => $config['api_key_auth']['api_key_limit_column'] ?? null
+    ]);
 
     // Load Variable(s) from Config.
-    $this->allowedIps = $this->ci->config->item('rest')['allowed_ips'] ?? ['127.0.0.1', '[::1]'];
-    $this->apiKeyHeader = $this->ci->config->item('rest')['api_key_header'] ?? 'X-API-KEY';
-    $this->api_key_limit_column = $this->ci->config->item('rest')['api_key_auth']['api_key_limit_column'] ?? null;
-    $this->api_key_column = $this->ci->config->item('rest')['api_key_auth']['api_key_column'] ?? null;
-    $this->limit_api = $this->ci->config->item('rest')['api_limiter']['api_limiter'] ?? false;
-    $this->per_hour = $this->ci->config->item('rest')['api_limiter']['per_hour'] ?? 100;
-    $this->ip_per_hour = $this->ci->config->item('rest')['api_limiter']['ip_per_hour'] ?? 50;
-    $this->show_header = $this->ci->config->item('rest')['api_limiter']['show_header'] ?? null;
-    $this->whitelist = $this->ci->config->item('rest')['api_limiter']['whitelist'] ?? [];
-    $this->header_prefix = $this->ci->config->item('rest')['api_limiter']['header_prefix'] ?? 'X-RateLimit-';
+    $this->allowedIps = $config['allowed_ips'] ?? ['127.0.0.1', '[::1]'];
+    $this->apiKeyHeader = $config['api_key_header'] ?? 'X-API-KEY';
+    $this->api_key_limit_column = $config['api_key_auth']['api_key_limit_column'] ?? null;
+    $this->api_key_column = $config['api_key_auth']['api_key_column'] ?? null;
+    $this->limit_api = $config['api_limiter']['api_limiter'] ?? false;
+    $this->per_hour = $config['api_limiter']['per_hour'] ?? 100;
+    $this->ip_per_hour = $config['api_limiter']['ip_per_hour'] ?? 50;
+    $this->show_header = $config['api_limiter']['show_header'] ?? null;
+    $this->whitelist = $config['api_limiter']['whitelist'] ?? [];
+    $this->header_prefix = $config['api_limiter']['header_prefix'] ?? 'X-RateLimit-';
 
     // Limit Only?
-    //if ($this->ci->config->item('rest')['api_limiter']['api_limit_only'] ?? false) {
+    //if ($this->config['api_limiter']['api_limit_only'] ?? false) {
       //return;
     //}
 
@@ -174,7 +183,7 @@ class REST
 
     // Generic Rate Limiter.
     if ($this->limit_api && !$this->checked_rate_limit &&
-    ($this->ci->config->item('rest')['api_limiter']['limit_by_ip'] ?? false)) {
+    ($config['api_limiter']['limit_by_ip'] ?? false)) {
       $this->api_rest_limit_by_ip_address();
     }
 
@@ -189,17 +198,11 @@ class REST
   {
     $auths = null;
 
-    $globalAuths = $this->ci->config->item('rest')['global_auth'] ?? null;
+    $globalAuths = $this->config['global_auth'] ?? null;
 
-    if ($globalAuths != null) {
-      if (is_array($globalAuths)) {
-        $auths = $globalAuths;
-      } else {
-        $auths = [$globalAuths];
-      }
-    }
+    if ($globalAuths) $auths = is_array($globalAuths) ? $globalAuths : [$globalAuths];
 
-    $uri_auths = $this->ci->config->item('rest')['uri_auth'] ?? null;
+    $uri_auths = $this->config['uri_auth'] ?? null;
 
     // Match Auth Routes.
     // The below algorithm is similar to the one Code Igniter uses in its
@@ -222,8 +225,8 @@ class REST
       }
     }
 
-    //$auths = $this->ci->config->item('rest')['uri_auth'][uri_string()] ?? null;
-    if ($auths == null) return; // No authentication(s) to carry out.
+    //$auths = $this->config['uri_auth'][uri_string()] ?? null;
+    if (!$auths) return; // No authentication(s) to carry out.
 
     // $this->process_auth() terminates the script if authentication fails
     // It will call the callable in the rest.php config file under
@@ -249,6 +252,7 @@ class REST
       case RESTAuth::API_KEY: $this->api_key_auth(); break;
       case RESTAuth::OAUTH2: $this->bearer_auth(RESTAuth::OAUTH2); break;
       case RESTAuth::BEARER: $this->bearer_auth(); break;
+      case RESTAuth::SECRET: $this->bearer_auth(RESTAuth::SECRET); break;
       default: $this->custom_auth($auth);
     }
   }
@@ -263,23 +267,24 @@ class REST
   /**
    * [bearer_auth description]
    */
-  private function bearer_auth($auth=RESTAuth::BEARER):void {
+  private function bearer_auth($auth=RESTAuth::BEARER):void
+  {
     $authorization = $this->get_authorization_header();
-    if ($authorization == null || substr_count($authorization, " ") != 1) {
-      $this->handle_response(RESTResponse::BAD_REQUEST, $auth); // Exits.
+    if ($authorization == null || substr_count($authorization, ' ') != 1) {
+      $this->handle_response(RESTResponse::BAD_REQUEST, $auth, 'Bad Request'); // Exits.
     }
     $token = explode(" ", $authorization);
-    if ($token[0] != "Bearer") {
-      $this->handle_response(RESTResponse::BAD_REQUEST, $auth); // Exits.
+    if ($token[0] != $auth) {
+      $this->handle_response(RESTResponse::BAD_REQUEST, $auth, 'Invalid Authorization'); // Exits.
     }
     $this->token = $token[1];
     // Call Up Custom Implemented Bearer/Token Authorization.
     // Callback Check.
-    if (!isset($this->ci->config->item('rest')['auth_callbacks'][$auth])) {
+    if (!isset($this->config['auth_callbacks'][$auth])) {
       $this->handle_response(RESTResponse::NOT_IMPLEMENTED, $auth); // Exits.
     }
     // Authorization.
-    if (!$this->ci->config->item('rest')['auth_callbacks'][$auth]($this, $this->token)) {
+    if (!$this->config['auth_callbacks'][$auth]($this, $this->token)) {
       $this->handle_response(RESTResponse::UN_AUTHORIZED, $auth); // Exits.
     }
   }
@@ -397,11 +402,11 @@ class REST
       $this->handle_response(RESTResponse::BAD_REQUEST, $auth);
     }
     // Callback Check.
-    if (!isset($this->ci->config->item('rest')['auth_callbacks'][$auth])) {
+    if (!isset($this->config['auth_callbacks'][$auth])) {
       $this->handle_response(RESTResponse::NOT_IMPLEMENTED, $auth); // Exits.
     }
     // Authentication.
-    if (!$this->ci->config->item('rest')['auth_callbacks'][$auth]($this, $this->ci->security->xss_clean($_SERVER[$auth]))) {
+    if (!$this->config['auth_callbacks'][$auth]($this, $this->ci->security->xss_clean($_SERVER[$auth]))) {
       $this->handle_response(RESTResponse::UN_AUTHORIZED, $auth); // Exits.
     }
   }
@@ -432,12 +437,12 @@ class REST
    * [handle_response description]
    * @param int $code [description]
    */
-  private function handle_response(int $code, $auth=null):void
+  private function handle_response(int $code, $auth=null, ?string $errorReason=null):void
   {
     http_response_code($code);
     header("Content-Type: application/json");
-    if (isset($this->ci->config->item('rest')['response_callbacks'][$code])) {
-      $this->ci->config->item('rest')['response_callbacks'][$code]($auth);
+    if (isset($this->config['response_callbacks'][$code])) {
+      $this->config['response_callbacks'][$code]($auth, $errorReason);
     }
     if (ENVIRONMENT != 'testing') exit($code);
     throw new Exception("Error $code in $auth", $code);
