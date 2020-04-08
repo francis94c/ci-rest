@@ -351,42 +351,54 @@ class REST
 
     if (!$this->auth_proceed(true, $flags)) return;
 
-    // API KEY Auth Passed Above.
+    // ==== API KEY Auth Passed ==== //
+
     if ($this->limit_api && $this->api_key_limit_column != null && $apiKey->{$this->api_key_limit_column} == 1) {
-      // Trunctate Rate Limit Data.
-      $this->rest_model->truncateRatelimitData();
-      // Check Whitelist.
-      if (in_array($this->ci->input->ip_address(), $this->whitelist)) {
-        $this->checked_rate_limit = true; // Ignore Limit By IP.
-        return;
+      $this->limitAPIKey($apiKey->{$this->api_key_column});
+    }
+
+    $this->checked_rate_limit = true; // Ignore Limit By IP.
+  }
+
+  /**
+   * [limitAPIKey description]
+   * @date  2020-04-08
+   * @param string     $apiKey [description]
+   */
+  public function limitAPIKey(string $apiKey):void
+  {
+    // Trunctate Rate Limit Data.
+    $this->rest_model->truncateRatelimitData();
+    // Check Whitelist.
+    if (in_array($this->ci->input->ip_address(), $this->whitelist)) {
+      $this->checked_rate_limit = true; // Ignore Limit By IP.
+      return;
+    }
+    // Should we acyually Limit?
+    if ($this->per_hour > 0) {
+      $client = hash('md5', $this->ci->input->ip_address() . "%" . $apiKey);
+      $limitData = $this->rest_model->getLimitData($client, '_api_keyed_user');
+      if ($limitData == null) {
+        $limitData = [];
+        $limitData['count'] = 0;
+        $limitData['reset_epoch'] = gmdate('d M Y H:i:s', time() + (60 * 60));
+        $limitData['start'] = date('d M Y H:i:s');
       }
-      // Should we acyually Limit?
-      if ($this->per_hour > 0) {
-        $client = hash('md5', $this->ci->input->ip_address() . "%" . $apiKey->{$this->api_key_column});
-        $limitData = $this->rest_model->getLimitData($client, '_api_keyed_user');
-        if ($limitData == null) {
-          $limitData = [];
-          $limitData['count'] = 0;
-          $limitData['reset_epoch'] = gmdate('d M Y H:i:s', time() + (60 * 60));
-          $limitData['start'] = date('d M Y H:i:s');
+      if ($this->per_hour - $limitData['count'] > 0) {
+        if (!$this->rest_model->insertLimitData($client, '_api_keyed_user')) {
+          $this->handle_response(RESTResponse::INTERNAL_SERVER_ERROR, self::RATE_LIMIT); // Exits.
         }
-        if ($this->per_hour - $limitData['count'] > 0) {
-          if (!$this->rest_model->insertLimitData($client, '_api_keyed_user')) {
-            $this->handle_response(RESTResponse::INTERNAL_SERVER_ERROR, self::RATE_LIMIT); // Exits.
-          }
-          ++$limitData['count'];
-          if ($this->show_header) {
-            header($this->header_prefix.'Limit: '.$this->per_hour);
-            header($this->header_prefix.'Remaining: '.($this->per_hour - $limitData['count']));
-            header($this->header_prefix.'Reset: '.strtotime($limitData['reset_epoch']));
-          }
-        } else {
-          header('Retry-After: '.(strtotime($limitData['reset_epoch']) - strtotime(gmdate('d M Y H:i:s'))));
-          $this->handle_response(RESTResponse::TOO_MANY_REQUESTS, self::RATE_LIMIT); // Exits.
+        ++$limitData['count'];
+        if ($this->show_header) {
+          header($this->header_prefix.'Limit: '.$this->per_hour);
+          header($this->header_prefix.'Remaining: '.($this->per_hour - $limitData['count']));
+          header($this->header_prefix.'Reset: '.strtotime($limitData['reset_epoch']));
         }
+      } else {
+        header('Retry-After: '.(strtotime($limitData['reset_epoch']) - strtotime(gmdate('d M Y H:i:s'))));
+        $this->handle_response(RESTResponse::TOO_MANY_REQUESTS, self::RATE_LIMIT); // Exits.
       }
     }
-    $this->checked_rate_limit = true; // Ignore Limit By IP.
   }
 
   /**
