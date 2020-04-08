@@ -90,7 +90,7 @@ class REST
    * [public description]
    * @var [type]
    */
-  public  $token;
+  public $token;
 
   /**
    * [public description]
@@ -105,6 +105,12 @@ class REST
   public $config;
 
   /**
+   * [public description]
+   * @var [type]
+   */
+  public $authPreempted = false;
+
+  /**
    * [PACKAGE description]
    * @var string
    */
@@ -115,6 +121,14 @@ class REST
    * @var string
    */
   const RATE_LIMIT = "RateLimit";
+
+  /**
+   * [AUTH_GRAVITY description]
+   * @var integer
+   */
+  const AUTH_GRAVITY = 0b100;
+  const AUTH_PASSIVE = 0b010;
+  const AUTH_FINAL   = 0b001;
 
   /**
    * [__construct This is the part of the code that takes care of all
@@ -197,85 +211,96 @@ class REST
   private function authenticate():void
   {
     $auths = null;
+    $auths = $this->config['auth'] ?? null;
+    if ($auths) $auths = is_array($auths) ? $auths : [$auths];
 
-    $globalAuths = $this->config['global_auth'] ?? null;
-
-    if ($globalAuths) $auths = is_array($globalAuths) ? $globalAuths : [$globalAuths];
-
-    $uri_auths = $this->config['uri_auth'] ?? null;
-
-    // Match Auth Routes.
-    // The below algorithm is similar to the one Code Igniter uses in its
-    // Routing Class.
-    if ($uri_auths != null || is_array($uri_auths)) {
-      foreach ($uri_auths as $uri => $auth_array) {
-        // Convert wildcards to RegEx.
-  			$uri = str_replace(array(':any', ':num'), array('[^/]+', '[0-9]+'), $uri);
-        if (preg_match('#^'.$uri.'$#', uri_string())) {
-          // Assign Authentication Steps.
-          if (is_array($auth_array)) {
-            foreach ($auth_array as $auth) {
-              $auths[] = $auth;
-            }
-          } else {
-            $auths[] = $auth_array;
-          }
-        }
-        break;
-      }
-    }
-
-    //$auths = $this->config['uri_auth'][uri_string()] ?? null;
     if (!$auths) return; // No authentication(s) to carry out.
 
-    // $this->process_auth() terminates the script if authentication fails
-    // It will call the callable in the rest.php config file under
-    // response_callbacks which matches the necesarry RESTResponse constant
-    // before exiting. Which callable is called in any situation is documented
-    // in README.md
-    //if (is_scalar($auths)) {
-      //$this->process_auth($auths);
-      //return;
-    //}
+    /**
+     * $this->process_auth() terminates the script if authentication fails
+     * It will call the callable in the rest.php config file under
+     * response_callbacks which matches the necesarry RESTResponse constant
+     * before exiting. Which callable is called in any situation is documented
+     * in README.md
+     */
 
-    foreach ($auths as $auth) $this->process_auth($auth);
-  }
-  /**
-   * [process_auth description]
-   * @param  string $auth [description]
-   * @return bool         [description]
-   */
-  private function process_auth(string &$auth):void {
-    switch ($auth) {
-      case RESTAuth::IP: $this->ip_auth(); break;
-      case RESTAuth::BASIC: $this->basic_auth(); break;
-      case RESTAuth::API_KEY: $this->api_key_auth(); break;
-      case RESTAuth::OAUTH2: $this->bearer_auth(RESTAuth::OAUTH2); break;
-      case RESTAuth::BEARER: $this->bearer_auth(); break;
-      case RESTAuth::SECRET: $this->bearer_auth(RESTAuth::SECRET); break;
-      default: $this->custom_auth($auth);
+    foreach ($auths as $key => $auth) {
+      if ($this->authPreempted) break;
+      if (is_numeric($key)) {
+        $this->process_auth($auth, self::AUTH_GRAVITY);
+      } else {
+        $this->process_auth($key, $auth);
+      }
     }
   }
+
+  /**
+   * [process_auth description]
+   * @date  2020-04-07
+   * @param string     $auth  [description]
+   * @param int        $flags [description]
+   */
+  private function process_auth(string &$auth, int $flags):void
+  {
+    switch ($auth) {
+      case RESTAuth::IP: $this->ip_auth($flags); break;
+      case RESTAuth::BASIC: $this->basic_auth($flags); break;
+      case RESTAuth::API_KEY: $this->api_key_auth($flags); break;
+      case RESTAuth::OAUTH2: $this->bearer_auth(RESTAuth::OAUTH2, $flags); break;
+      case RESTAuth::BEARER: $this->bearer_auth(RESTAuth::BEARER, $flags); break;
+      case RESTAuth::SECRET: $this->bearer_auth(RESTAuth::SECRET, $flags); break;
+      default: $this->custom_auth($auth, $flags);
+    }
+  }
+
+  /**
+   * [auth_proceed description]
+   * @date   2020-04-07
+   * @param  bool       $success [description]
+   * @param  int        $flags   [description]
+   * @return bool                [description]
+   */
+  private function auth_proceed(bool $success, int $flags):bool
+  {
+    if ($flags & self::AUTH_GRAVITY) return $success;
+    if ($success) {
+      if ($flags & self::AUTH_FINAL) {
+        $this->authPreempted = true;
+        return true;
+      }
+    } else {
+      return $flags & self::AUTH_PASSIVE ? true : false;
+    }
+  }
+
   /**
    * [ip_auth description]
+   * @date  2020-04-07
+   * @param int        $flags [description]
    */
-  private function ip_auth():void {
-    if (!in_array($this->ci->input->ip_address(), $this->allowedIps)) {
+  private function ip_auth(int $flags):void
+  {
+    if (!$this->auth_proceed(in_array($this->ci->input->ip_address(), $this->allowedIps), $flags)) {
       $this->handle_response(RESTResponse::UN_AUTHORIZED, RESTAuth::IP); // Exits.
     }
   }
+
   /**
    * [bearer_auth description]
+   * @date  2020-04-07
+   * @param string     $auth  [description]
+   * @param int        $flags [description]
    */
-  private function bearer_auth($auth=RESTAuth::BEARER):void
+  private function bearer_auth(string $auth, int $flags):void
   {
     $authorization = $this->get_authorization_header();
-    if ($authorization == null || substr_count($authorization, ' ') != 1) {
+    $shouldProceed = $this->auth_proceed(false, $flags);
+    if ($authorization == null || substr_count($authorization, ' ') != 1 && !$shouldProceed) {
       $this->handle_response(RESTResponse::BAD_REQUEST, $auth, 'Bad Request'); // Exits.
     }
     $token = explode(" ", $authorization);
-    if ($token[0] != $auth) {
-      $this->handle_response(RESTResponse::BAD_REQUEST, $auth, 'Invalid Authorization'); // Exits.
+    if ($token[0] != $auth && !$shouldProceed) {
+      $this->handle_response(RESTResponse::BAD_REQUEST, $auth, 'Bad Request'); // Exits.
     }
     $this->token = $token[1];
     // Call Up Custom Implemented Bearer/Token Authorization.
@@ -284,27 +309,32 @@ class REST
       $this->handle_response(RESTResponse::NOT_IMPLEMENTED, $auth); // Exits.
     }
     // Authorization.
-    if (!$this->config['auth_callbacks'][$auth]($this, $this->token)) {
+    if (!$this->auth_proceed($this->config['auth_callbacks'][$auth]($this, $this->token), $flags)) {
       $this->handle_response(RESTResponse::UN_AUTHORIZED, $auth); // Exits.
     }
   }
+
   /**
    * [basic_auth description]
+   * @date  2020-04-07
+   * @param int        $flags [description]
    */
-  private function basic_auth():void {
+  private function basic_auth(int $flags):void
+  {
     $username = $_SERVER['PHP_AUTH_USER'] ?? null;
     $password = $_SERVER['PHP_AUTH_PW'] ?? null;
-    if (!$username || !$password) $this->handle_response(RESTResponse::BAD_REQUEST, RESTAuth::BASIC); // Exits.
-    if (!$this->rest_model->basicAuth($this, $username, $password)) $this->handle_response(RESTResponse::UN_AUTHORIZED, RESTAuth::BASIC); // Exits.
+    if (!$this->auth_proceed(!$username || !$password, $flags)) $this->handle_response(RESTResponse::BAD_REQUEST, RESTAuth::BASIC); // Exits.
+    if (!$this->auth_proceed($this->rest_model->basicAuth($this, $username, $password), $flags)) $this->handle_response(RESTResponse::UN_AUTHORIZED, RESTAuth::BASIC); // Exits.
   }
   /**
    * [api_key_auth description]
    */
-  private function api_key_auth():void
+  private function api_key_auth(int $flags=self::AUTH_GRAVITY):void
   {
     if (uri_string() == '')  return;
+    $shouldProceed = $this->auth_proceed(false, $flags);
 
-    if (!$this->ci->input->get_request_header($this->apiKeyHeader, true)) {
+    if (!$this->ci->input->get_request_header($this->apiKeyHeader, true) && !$shouldProceed) {
     // if (!isset($_SERVER['HTTP_' . str_replace("-", "_", $this->apiKeyHeader)])) {
       $this->handle_response(RESTResponse::BAD_REQUEST, RESTAuth::API_KEY); // Exits.
     }
@@ -313,11 +343,13 @@ class REST
       $this->ci->input->get_request_header($this->apiKeyHeader, true)
     );
 
-    if ($apiKey == null) {
+    if ($apiKey == null && !$shouldProceed) {
       $this->handle_response(RESTResponse::UN_AUTHORIZED, RESTAuth::API_KEY); // Exits.
     }
 
     $this->apiKey = $apiKey;
+
+    if (!$this->auth_proceed(true, $flags)) return;
 
     // API KEY Auth Passed Above.
     if ($this->limit_api && $this->api_key_limit_column != null && $apiKey->{$this->api_key_limit_column} == 1) {
@@ -356,11 +388,13 @@ class REST
     }
     $this->checked_rate_limit = true; // Ignore Limit By IP.
   }
+
   /**
    * [api_rest_limit_by_ip_address description]
    * TODO: Implement.
    */
-  private function api_rest_limit_by_ip_address():void {
+  private function api_rest_limit_by_ip_address():void
+  {
     // Trunctate Rate Limit Data.
     $this->rest_model->truncateRatelimitData();
     // Check Whitelist.
