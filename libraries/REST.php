@@ -193,7 +193,9 @@ class REST
     //}
 
     // Authenticate
-    $this->authenticate();
+    if ($this->ci->uri->total_segments() > 0) {
+      $this->authenticate();
+    }
 
     // Generic Rate Limiter.
     if ($this->limit_api && !$this->checked_rate_limit &&
@@ -295,11 +297,13 @@ class REST
   {
     $authorization = $this->get_authorization_header();
     $shouldProceed = $this->auth_proceed(false, $flags);
-    if ($authorization == null || substr_count($authorization, ' ') != 1 && !$shouldProceed) {
+    if ($authorization == null || substr_count($authorization, ' ') != 1) {
+      if ($shouldProceed) return;
       $this->handle_response(RESTResponse::BAD_REQUEST, $auth, 'Bad Request'); // Exits.
     }
     $token = explode(" ", $authorization);
-    if ($token[0] != $auth && !$shouldProceed) {
+    if ($token[0] != $auth) {
+      if ($shouldProceed) return;
       $this->handle_response(RESTResponse::BAD_REQUEST, $auth, 'Bad Request'); // Exits.
     }
     $this->token = $token[1];
