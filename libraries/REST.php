@@ -147,6 +147,8 @@ class REST
     //$this->ci->config->load('rest', true, true);
     if (is_file(APPPATH . 'config/rest.php')) {
       include APPPATH . 'config/rest.php';
+    } else {
+      $config = [];
     }
 
     $this->config = $config;
